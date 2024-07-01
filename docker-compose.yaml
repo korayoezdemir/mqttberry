@@ -1,0 +1,70 @@
+version: '3.7'
+
+services:
+  influxdb:
+    build: 
+      context: ./influxdb
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+      - shared:/shared
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin
+      DOCKER_INFLUXDB_INIT_ORG: admin
+      DOCKER_INFLUXDB_INIT_BUCKET: admin
+    depends_on:
+      - mosquitto
+
+  mosquitto:
+    build:
+      context: ./mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  grafana:
+    build:
+      context: ./grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - influxdb
+      - mosquitto
+
+  mqtt2influx:
+    build:
+      context: ./mqtt2influx
+    volumes:
+      - shared:/shared
+    depends_on:
+      - influxdb
+      - mosquitto
+
+volumes:
+  influxdb-data:
+    driver: local
+  influxdb-config:
+    driver: local
+  mosquitto-data:
+    driver: local
+  mosquitto-log:
+    driver: local
+  mosquitto-config:
+    driver: local
+  grafana-data:
+    driver: local
+  shared:
+    driver: local
